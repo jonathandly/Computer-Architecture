@@ -2,7 +2,8 @@
 
 import sys
 
-memory = [0] * 256
+# memory = [0] * 256
+stack_pointer = 7
 
 
 class CPU:
@@ -10,6 +11,7 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
+        self.memory = [0] * 256
         self.register = [0] * 8
         self.pc = 0
         self.command = {
@@ -26,6 +28,7 @@ class CPU:
         """Load a program into memory."""
 
         address = 0
+
         if len(sys.argv) != 2:
             print("Need proper file name passed!")
             sys.exit(1)
@@ -45,12 +48,13 @@ class CPU:
 
         with open(filename) as f:
             for line in f:
-                if line == '':
-                    continue
                 split_line = line.split("#")
                 num = split_line[0].strip()
+                if num == '':
+                    continue
+                print(num)
 
-                memory[address] = int(num)
+                self.memory[address] = int(num, 2)
                 address += 1
 
         # for instruction in program:
@@ -89,50 +93,53 @@ class CPU:
     def run(self):
         """Run the CPU."""
         running = True
-        pc = 0
 
         while running:
-            command = memory[pc]
+            command = self.memory[self.pc]
 
             if command == "HLT":
                 running = False
-                pc += 1
+                self.pc += 1
             elif command == "PRN":
-                num = memory[pc+1]
+                num = self.memory[self.pc+1]
                 print(num)
-                pc += 2
+                self.pc += 2
             # elif command == "LDI":
             # elif command == "MUL":
             elif command == "ADD":
-                register1 = memory[pc + 1]
-                register2 = memory[pc + 2]
+                # register1 = memory[self.pc + 1]
+                # register2 = memory[self.pc + 2]
 
                 val1 = registers[register1]
                 val2 = registers[register2]
-                registers[register1] = val1 + val2
-                pc += 3
+                # registers[register1] = val1 + val2
+                self.alu('ADD', val1, val2)
+                self.pc += 3
             elif command == "PUSH":
-                register = memory[pc + 1]
-                registers[pointer] -= 1
+                register = memory[self.pc + 1]
+                registers[stack_pointer] -= 1
 
                 register_value = registers[register]
 
-                memory[registers[pointer]] = register_value
-                pc += 2
+                memory[registers[stack_pointer]] = register_value
+                self.pc += 2
             elif command == "POP":
-                value = memory[registers[pointer]]
-                register = memory[pc + 1]
+                value = memory[registers[stack_pointer]]
+                register = memory[self.pc + 1]
 
                 registers[register] = value
-                registers[pointer] += 1
-                pc += 2
+                registers[stack_pointer] += 1
+                self.pc += 2
             else:
                 print(f"Unknown instruction {command}")
                 sys.exit(1)
 
     def ram_read(self, mar):
-        ram = [0] * 256
-        return
+        mar = memory[mar]
+        return mar
 
     def ram_write(self, mar, val):
         pass
+
+
+ram = [0] * 256
