@@ -2,18 +2,16 @@
 
 import sys
 
-# memory = [0] * 256
-stack_pointer = 7
-
 
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        self.memory = [0] * 256
+        self.ram = [0] * 256
         self.register = [0] * 8
         self.pc = 0
+        self.stack_pointer = 7
         self.command = {
             "HLT":  0b00000001,
             "PRN":  0b01000111,
@@ -22,6 +20,8 @@ class CPU:
             "ADD":  0b10100000,
             "PUSH": 0b01000101,
             "POP":  0b01000110,
+            "SUB":  0b10100001,
+            "DIV":  0b10100011,
         }
 
     def load(self):
@@ -54,7 +54,7 @@ class CPU:
                     continue
                 print(num)
 
-                self.memory[address] = int(num, 2)
+                self.ram[address] = int(num, 2)
                 address += 1
 
         # for instruction in program:
@@ -65,8 +65,14 @@ class CPU:
         """ALU operations."""
 
         if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
+            self.register[reg_a] += self.register[reg_b]
         # elif op == "SUB": etc
+        elif op == "SUB":
+            self.register[reg_a] -= self.register[reg_b]
+        elif op == "MUL":
+            self.register[reg_a] *= self.register[reg_b]
+        elif op == "DIV":
+            self.register[reg_a] /= self.register[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -95,18 +101,23 @@ class CPU:
         running = True
 
         while running:
-            command = self.memory[self.pc]
+            command = self.ram[self.pc]
 
-            if command == "HLT":
+            if command == self.command["HLT"]:
                 running = False
                 self.pc += 1
-            elif command == "PRN":
-                num = self.memory[self.pc+1]
+            elif command == self.command["PRN"]:
+                num = self.ram[self.pc+1]
                 print(num)
                 self.pc += 2
             # elif command == "LDI":
-            # elif command == "MUL":
-            elif command == "ADD":
+            elif command == self.command["MUL"]:
+                val1 = self.ram[self.pc + 1]
+                val2 = self.ram[self.pc + 2]
+
+                self.alu('MUL', val1, val2)
+                self.pc += 3
+            elif command == self.command["ADD"]:
                 # register1 = memory[self.pc + 1]
                 # register2 = memory[self.pc + 2]
 
@@ -115,20 +126,20 @@ class CPU:
                 # registers[register1] = val1 + val2
                 self.alu('ADD', val1, val2)
                 self.pc += 3
-            elif command == "PUSH":
-                register = memory[self.pc + 1]
-                registers[stack_pointer] -= 1
+            elif command == self.command["PUSH"]:
+                register = self.ram[self.pc + 1]
+                registers[self.stack_pointer] -= 1
 
                 register_value = registers[register]
 
-                memory[registers[stack_pointer]] = register_value
+                memory[registers[self.stack_pointer]] = register_value
                 self.pc += 2
-            elif command == "POP":
-                value = memory[registers[stack_pointer]]
-                register = memory[self.pc + 1]
+            elif command == self.command["POP"]:
+                value = self.ram[registers[self.stack_pointer]]
+                register = self.ram[self.pc + 1]
 
                 registers[register] = value
-                registers[stack_pointer] += 1
+                registers[self.stack_pointer] += 1
                 self.pc += 2
             else:
                 print(f"Unknown instruction {command}")
@@ -140,6 +151,3 @@ class CPU:
 
     def ram_write(self, mar, val):
         pass
-
-
-ram = [0] * 256
